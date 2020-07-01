@@ -93,9 +93,9 @@ def train():
 
     render = False
     gamma = 0.99
-    lr = 0.02
+    lr = 0.003
     betas = (0.9, 0.999)
-    random_seed = 543
+    random_seed = 804
     
     torch.manual_seed(random_seed)
     
@@ -107,26 +107,28 @@ def train():
     print(lr,betas)
     
     running_reward = 0
-    for i_episode in range(0, 10000):
+    avg_total_rewards = []
+    for i_episode in range(0, 400):
         state = env.reset()
-        for t in range(10000):
+        record_reward = 0
+        for t in range(5):
             action = policy(state)
             state, reward, done, _ = env.step(action)
             policy.rewards.append(reward)
+            record_reward += reward
             running_reward += reward
+            record_reward += 0
             if render and i_episode > 1000:
                 env.render()
             if done:
                 break
-                    
+        avg_total_rewards.append(record_reward / 5)          
         # Updating the policy :
-        torch.set_default_tensor_type(torch.DoubleTensor)
         optimizer.zero_grad()
         loss = policy.calculateLoss(gamma)
         loss.backward()
         optimizer.step()        
         policy.clearMemory()
-        torch.set_default_tensor_type(torch.FloatTensor)
         # saving the model if episodes > 999 OR avg reward > 200 
         #if i_episode > 999:
         #    torch.save(policy.state_dict(), './preTrained/LunarLander_{}_{}_{}.pth'.format(lr, betas[0], betas[1]))
@@ -141,5 +143,8 @@ def train():
             running_reward = running_reward/20
             print('Episode {}\tlength: {}\treward: {}'.format(i_episode, t, running_reward))
             running_reward = 0
-if __name__ == '__main__':
-    train()
+    return avg_total_rewards
+avg_total_rewards = train()
+plt.plot(avg_total_rewards)
+plt.title("Total Rewards")
+plt.savefig("toto_rewards.png")
